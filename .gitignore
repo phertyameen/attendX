@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# build
+dist/
+build/
+
+# testing
+coverage/
+
+# environment
+.env*
+!.env.example
+
+# system
+.DS_Store
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# vscode
+.vscode/
