@@ -15,6 +15,7 @@ import { GraduationCap, Users, Wallet, BookOpen } from "lucide-react";
 import { InstructorDashboard } from "@/components/instructor-dashboard";
 import { StudentDashboard } from "@/components/student-dashboard";
 import { Navbar } from "@/components/navbar";
+import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   const { address, isConnected } = useAccount();
@@ -35,8 +36,8 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-12 h-12 bg-gradient-to-r from-[rgb(28,60,138)] to-[#02B7D5] rounded-full flex items-center justify-center">
+          <CardHeader className="px-0 md:px-6 text-center">
+            <div className="mx-auto mb-4 w-12 h-12 bg-gradient-to-r from-[rgb(28,60,138)] to-[#02B7D5] rounded-lg flex items-center justify-center">
               <BookOpen className="w-6 h-6 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">AttendX</CardTitle>
@@ -45,9 +46,46 @@ export default function HomePage() {
               platform
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-0 md:px-6">
             <div className="w-max m-auto pb-3">
-              <ConnectButton showBalance={false} chainStatus="icon" />
+              {/* <ConnectButton showBalance={false} chainStatus="icon" /> */}
+              <ConnectButton.Custom>
+                {({ account, chain, openConnectModal, mounted }) => {
+                  const connected = mounted && account && chain;
+                  return (
+                    <div
+                      {...(!mounted && {
+                        "aria-hidden": true,
+                        style: {
+                          opacity: 0,
+                          pointerEvents: "none",
+                          userSelect: "none",
+                        },
+                      })}
+                    >
+                      {!connected ? (
+                        <Button
+                          onClick={openConnectModal}
+                          //     className="px-4 py-2 rounded-lg font-medium text-white
+                          //  bg-gradient-to-r from-[rgb(28,60,138)] via-white/70 to-[#02B7D5]
+                          //    h transition"
+                        >
+                          Connect Wallet
+                        </Button>
+                      ) : (
+                        <button
+                          onClick={openConnectModal}
+                          className="px-4 py-2 rounded-lg font-medium text-white
+                       bg-gradient-to-r from-[rgb(28,60,138)] via-white/70 to-[#02B7D5]
+                        shadow-md hover:opacity-90 transition"
+                        >
+                          {account.displayName}
+                        </button>
+                      )}
+                    </div>
+                  );
+                }}
+              </ConnectButton.Custom>
             </div>
             <p className="text-sm text-muted-foreground text-center">
               Secure blockchain-based attendance tracking for educational
@@ -63,7 +101,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-background">
         <div className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gradient-to-r from-[rgb(28,60,138)] to-[#02B7D5] rounded-lg flex items-center justify-center">
@@ -71,12 +109,12 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-foreground">AttendX</h1>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground hidden sm:block">
                     Decentralized Attendance
                   </p>
                 </div>
               </div>
-              <ConnectButton showBalance={false} chainStatus="none"  />
+              <ConnectButton showBalance={false} chainStatus="none" />
             </div>
           </div>
         </div>
@@ -112,7 +150,7 @@ export default function HomePage() {
                     Create sessions and share registration links
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 md:px-6">
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li>• Create attendance sessions</li>
                     <li>• Share session registration links</li>
@@ -135,7 +173,7 @@ export default function HomePage() {
                     Register for sessions and check in when active
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 md:px-6">
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li>• Register for sessions via links</li>
                     <li>• Check in when sessions are active</li>

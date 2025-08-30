@@ -33,7 +33,7 @@ export function CheckInDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[400px] px-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Check In to Session</DialogTitle>
           <DialogDescription>

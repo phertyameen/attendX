@@ -45,16 +45,16 @@ export function CreateSessionDialog({
         ...sessionData,
         duration: Number.parseInt(sessionData.duration),
       });
-      toast.success("Session created successfully!");
-      onOpenChange(false);
-      setSessionData({
-        title: "",
-        startDate: "",
-        startTime: "",
-        duration: "",
-        location: "",
-        description: "",
-      });
+      // toast.success("Session created successfully!");
+      // onOpenChange(false);
+      // setSessionData({
+      //   title: "",
+      //   startDate: "",
+      //   startTime: "",
+      //   duration: "",
+      //   location: "",
+      //   description: "",
+      // });
     } catch (error) {
       console.error("Error creating session:", error);
       toast.error("Failed to create session. Please try again.");
@@ -65,7 +65,7 @@ export function CreateSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] px-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Create New Session</DialogTitle>
           <DialogDescription>

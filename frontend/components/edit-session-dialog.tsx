@@ -73,7 +73,7 @@ export function EditSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] px-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Edit Session</DialogTitle>
           <DialogDescription>
