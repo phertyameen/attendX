@@ -36,10 +36,10 @@ export default function HomePage() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+            <div className="mx-auto mb-4 w-12 h-12 bg-gradient-to-r from-[rgb(28,60,138)] to-[#02B7D5] rounded-full flex items-center justify-center">
               <BookOpen className="w-6 h-6 text-primary-foreground" />
             </div>
-            <CardTitle className="text-2xl font-bold">Web3 School</CardTitle>
+            <CardTitle className="text-2xl font-bold">AttendX</CardTitle>
             <CardDescription>
               Connect your wallet to access the decentralized attendance
               platform
@@ -66,19 +66,17 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-[rgb(28,60,138)] to-[#02B7D5] rounded-lg flex items-center justify-center">
                   <BookOpen className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-foreground">
-                    Web3 School
-                  </h1>
+                  <h1 className="text-xl font-bold text-foreground">AttendX</h1>
                   <p className="text-xs text-muted-foreground">
                     Decentralized Attendance
                   </p>
                 </div>
               </div>
-              <ConnectButton showBalance={false} chainStatus="none" />
+              <ConnectButton showBalance={false} chainStatus="none"  />
             </div>
           </div>
         </div>
@@ -92,7 +90,7 @@ export default function HomePage() {
               <p className="text-muted-foreground">
                 Select how you want to use the platform
               </p>
-              <Badge variant="secondary" className="mt-2">
+              <Badge variant="secondary" className="mt-2 text-white">
                 <Wallet className="w-3 h-3 mr-1" />
                 Wallet Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
               </Badge>
@@ -130,7 +128,7 @@ export default function HomePage() {
               >
                 <CardHeader className="text-center">
                   <div className="mx-auto mb-4 w-16 h-16 bg-secondary rounded-full flex items-center justify-center">
-                    <Users className="w-8 h-8 text-secondary-foreground" />
+                    <Users className="w-8 h-8 text-white" />
                   </div>
                   <CardTitle className="text-xl">Student Dashboard</CardTitle>
                   <CardDescription>

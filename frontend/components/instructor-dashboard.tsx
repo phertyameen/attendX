@@ -30,6 +30,8 @@ import {
   Share2,
   Copy,
   Users,
+  Award,
+  TrendingUp,
 } from "lucide-react";
 import { CreateSessionDialog } from "./create-session-dialog";
 import { ViewAttendanceDialog } from "./view-attendance-dialog";
@@ -186,7 +188,7 @@ export function InstructorDashboard() {
         }
 
         // Save to local session manager
-       await SessionManager.createSession({
+        await SessionManager.createSession({
           sessionId,
           txHash: receipt.hash,
           title: sessionData.title,
@@ -271,6 +273,23 @@ export function InstructorDashboard() {
       </Badge>
     );
   };
+  const totalSessions = sessions.length;
+  const activeSessions = sessions.filter((s) => s.status === "active").length;
+  const completedSessions = sessions.filter(
+    (s) => s.status === "completed"
+  ).length;
+  const totalRegistrations = sessions.reduce(
+    (sum, session) => sum + (session.registeredStudents?.length || 0),
+    0
+  );
+  const totalAttendance = sessions.reduce(
+    (sum, session) => sum + (session.attendanceCount || 0),
+    0
+  );
+  const averageAttendanceRate =
+    totalRegistrations > 0
+      ? Math.round((totalAttendance / totalRegistrations) * 100)
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -286,7 +305,7 @@ export function InstructorDashboard() {
         <Button
           onClick={() => setShowCreateForm(true)}
           disabled={!isConnected || !walletClient || isCreating}
-          className="bg-primary hover:bg-primary/90 disabled:opacity-50"
+          className="disabled:opacity-50"
         >
           <Plus className="w-4 h-4 mr-2" />
           {isCreating ? "Creating..." : "Create Session"}
@@ -310,6 +329,66 @@ export function InstructorDashboard() {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Sessions
+            </CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalSessions}</div>
+            <p className="text-xs text-muted-foreground">
+              {activeSessions} active, {completedSessions} completed
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Registrations
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalRegistrations}</div>
+            <p className="text-xs text-muted-foreground">across all sessions</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Average Attendance
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{averageAttendanceRate}%</div>
+            <p className="text-xs text-muted-foreground">
+              {averageAttendanceRate >= 80
+                ? "Excellent engagement!"
+                : "Room for improvement"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Active Sessions
+            </CardTitle>
+            <Award className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeSessions}</div>
+            <p className="text-xs text-muted-foreground">currently running</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>

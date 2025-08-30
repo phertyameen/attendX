@@ -16,7 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Session, Student } from "@/lib/session-manager";
+import { UserCheck } from "lucide-react";
+import type { Session } from "@/lib/session-manager";
 
 interface ViewAttendanceDialogProps {
   open: boolean;
@@ -29,25 +30,11 @@ export function ViewAttendanceDialog({
   onOpenChange,
   session,
 }: ViewAttendanceDialogProps) {
-  // Mock student data - in real app this would come from blockchain
-  const mockStudents: Student[] = [
-    {
-      id: "1",
-      name: "Alice Johnson",
-      walletAddress: "0x1234...5678",
-      checkedInAt: "10:05 AM",
-      blockchainTxHash: "0xabc123...",
-    },
-    {
-      id: "2",
-      name: "Bob Smith",
-      walletAddress: "0x2345...6789",
-      checkedInAt: "10:03 AM",
-      blockchainTxHash: "0xdef456...",
-    },
-  ];
 
   if (!session) return null;
+  
+  const attendees =
+    session.registeredStudents?.filter((student) => student.checkedInAt) || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,34 +53,44 @@ export function ViewAttendanceDialog({
               </p>
             </div>
             <Badge variant="secondary">
-              {mockStudents.length} students checked in
+              {attendees.length} students checked in
             </Badge>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Wallet Address</TableHead>
-                <TableHead>Check-in Time</TableHead>
-                <TableHead>Blockchain Tx</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockStudents.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {student.walletAddress}
-                  </TableCell>
-                  <TableCell>{student.checkedInAt}</TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {student.blockchainTxHash}
-                  </TableCell>
+          {attendees.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <UserCheck className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">No check-ins yet</p>
+              <p className="text-sm">Students who check in will appear here</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Wallet Address</TableHead>
+                  <TableHead>Check-in Time</TableHead>
+                  <TableHead>Blockchain Tx</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {attendees.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell className="font-medium">
+                      {student.name}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {student.walletAddress}
+                    </TableCell>
+                    <TableCell>{student.checkedInAt}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {student.blockchainTxHash}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </DialogContent>
     </Dialog>
