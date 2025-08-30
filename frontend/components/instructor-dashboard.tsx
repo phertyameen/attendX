@@ -293,7 +293,7 @@ export function InstructorDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row gap-3 md:gap-0 md:justify-between items-end md:items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             Instructor Dashboard
@@ -400,117 +400,216 @@ export function InstructorDashboard() {
         </CardHeader>
         <CardContent>
           {sessions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                No sessions created yet. Create your first session to get
-                started.
+            <div className="text-center py-12 text-muted-foreground">
+              <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">No sessions created yet</p>
+              <p className="text-sm">
+                Create your first session to start tracking attendance
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Registered</TableHead>
-                  <TableHead>Attended</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="mobile-card space-y-4 md:hidden">
                 {sessions.map((session) => (
-                  <TableRow key={session.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{session.title}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {session.description}
+                  <Card
+                    key={session.id}
+                    className="border-l-4 border-l-primary"
+                  >
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-lg">
+                              {session.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {session.description}
+                            </p>
+                          </div>
+                          {getStatusBadge(session.status)}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.startDate}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.startTime}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.location}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              {session.registeredStudents?.length || 0}{" "}
+                              registered
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="text-sm text-muted-foreground">
+                            {session.attendanceCount || 0} attended •{" "}
+                            {session.duration} min
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => copySessionLink(session.id)}
+                              className="h-8 w-8 p-0"
+                              title="Share registration link"
+                            >
+                              {copiedSessionId === session.id ? (
+                                <Copy className="w-4 h-4 text-white" />
+                              ) : (
+                                <Share2 className="w-4 h-4 text-white" />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon"
+                              onClick={() => {
+                                setSelectedSession(session);
+                                setShowAttendanceDialog(true);
+                              }}
+                              className="h-8 w-8 p-0"
+                              title="View attendance"
+                            >
+                              <Eye className="w-4 h-4 text-white" />
+                            </Button>
+                            {session.status === "upcoming" && (
+                              <Button
+                                size="icon"
+                                onClick={() => openEditForm(session)}
+                                className="h-8 w-8 p-0 bg-primary"
+                                title="Edit session "
+                              >
+                                <Edit className="w-4 h-4 text-white" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span>{session.startDate}</span>
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span>{session.startTime}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{session.duration} min</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>{session.location || "not set"}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(session.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <span>{session.registeredStudents?.length || 0}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{session.attendanceCount} students</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copySessionLink(session.id)}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          {copiedSessionId === session.id ? (
-                            <>
-                              <Copy className="w-4 h-4 mr-1" />
-                              Copied!
-                            </>
-                          ) : (
-                            <>
-                              <Share2 className="w-4 h-4 mr-1" />
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedSession(session);
-                            setShowAttendanceDialog(true);
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                        </Button>
-                        {session.status === "upcoming" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditForm(session)}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              <div className="desktop-table hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Session</TableHead>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Duration</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Registered</TableHead>
+                      <TableHead>Attended</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sessions.map((session) => (
+                      <TableRow key={session.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{session.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {session.description}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.startDate}</span>
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.startTime}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{session.duration} min</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.location}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(session.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              {session.registeredStudents?.length || 0}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {session.attendanceCount || 0} students
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copySessionLink(session.id)}
+                              className="h-8 w-8 p-0 hover:bg-secondary/20"
+                              title="Share registration link"
+                            >
+                              {copiedSessionId === session.id ? (
+                                <Copy className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <Share2 className="w-4 h-4 text-secondary" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSession(session);
+                                setShowAttendanceDialog(true);
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-accent/20"
+                              title="View attendance"
+                            >
+                              <Eye className="w-4 h-4 text-accent" />
+                            </Button>
+                            {session.status === "upcoming" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditForm(session)}
+                                className="h-8 w-8 p-0 hover:bg-primary/20"
+                                title="Edit session"
+                              >
+                                <Edit className="w-4 h-4 text-primary" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
 
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <div className="flex items-start space-x-3">
-            <Share2 className="w-5 h-5 text-blue-600 mt-0.5" />
+      <Card className=" border-primary">
+        <CardContent className="">
+          <div className="flex md:items-center space-x-3">
+            <Share2 className="w-20 md:w-5 md:h-5 text-primary" />
             <div>
-              <h3 className="font-medium text-blue-900">
+              <h3 className="font-medium text-primary">
                 How Session Registration Works
               </h3>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-sm mt-1">
                 Click the &quot;Share&quot; button to copy a registration link
                 for any session. Students must register using this link before
                 they can check in when the session becomes active. Sessions

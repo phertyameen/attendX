@@ -36,6 +36,7 @@ export type Student = {
   name: string;
   walletAddress: string;
   checkedInAt: string;
+  registeredAt: string;
   blockchainTxHash?: string;
 };
 

@@ -54,9 +54,9 @@ export function StudentDashboard() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
 
- const refreshSessionData = async () => {
+  const refreshSessionData = async () => {
     if (!address) return;
-    
+
     try {
       const allSessions = await SessionManager.getAllSessions(address);
       setAvailableSessions(allSessions);
@@ -64,7 +64,7 @@ export function StudentDashboard() {
       // Convert sessions to student attendance format
       const attendance: StudentAttendance[] = allSessions.map((session) => {
         let status: StudentAttendance["status"] = "available";
-        
+
         if (session.studentStatus === "checked-in") {
           status = "attended";
         } else if (session.studentStatus === "registered") {
@@ -80,8 +80,13 @@ export function StudentDashboard() {
           sessionTime: session.startTime || "-",
           location: session.location || "-",
           status,
-          checkedInAt: session.registeredStudents.find(s => s.walletAddress === address)?.checkedInAt,
-          registeredAt: session.studentStatus !== "none" ? new Date().toLocaleTimeString() : undefined,
+          checkedInAt: session.registeredStudents.find(
+            (s) => s.walletAddress === address
+          )?.checkedInAt,
+          registeredAt:
+            session.studentStatus !== "none"
+              ? new Date().toLocaleTimeString()
+              : undefined,
           blockchainTxHash: session.blockchainTxHash,
         };
       });
@@ -98,16 +103,15 @@ export function StudentDashboard() {
     refreshSessionData();
   }, [address]);
 
-
   const handleRegisterForSession = async (sessionId: string) => {
     if (!address) return;
-    
+
     try {
       await SessionManager.registerForSession(sessionId);
-      
+
       // Wait a moment for blockchain confirmation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Refresh all session data to get updated status
       await refreshSessionData();
     } catch (error) {
@@ -118,24 +122,24 @@ export function StudentDashboard() {
   };
 
   const handleCheckIn = async (sessionId: string) => {
-   if (!address) return;
-    
-    try {   
+    if (!address) return;
+
+    try {
       // Check if user is actually registered first
-      const session = availableSessions.find(s => s.id === sessionId);
+      const session = availableSessions.find((s) => s.id === sessionId);
       if (!session || session.studentStatus === "none") {
         alert("You must register for this session before checking in!");
         return;
       }
 
       await SessionManager.checkInToSession(sessionId);
-      
+
       // Wait a moment for blockchain confirmation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Refresh all session data
       await refreshSessionData();
-      
+
       setShowCheckInDialog(false);
       setSelectedSession(null);
     } catch (error) {
@@ -253,19 +257,24 @@ export function StudentDashboard() {
         <CardContent>
           <div className="space-y-4">
             {studentAttendance
-              .filter(
-                (attendance) => {
-                  const session = availableSessions.find((s) => s.id === attendance.sessionId);
-                  return attendance.status === "registered" && session?.status === "active"
-                }
-              )
+              .filter((attendance) => {
+                const session = availableSessions.find(
+                  (s) => s.id === attendance.sessionId
+                );
+                return (
+                  attendance.status === "registered" &&
+                  session?.status === "active"
+                );
+              })
               .map((attendance) => {
                 const session = availableSessions.find(
                   (s) => s.id === attendance.sessionId
                 );
                 if (!session) return null;
 
-                const isRegistered = session.studentStatus === "registered" || session.studentStatus === "checked-in";
+                const isRegistered =
+                  session.studentStatus === "registered" ||
+                  session.studentStatus === "checked-in";
                 const canCheckIn = isRegistered && session.status === "active";
 
                 return (
@@ -321,9 +330,8 @@ export function StudentDashboard() {
                   </div>
                 );
               })}
-            {studentAttendance.filter(
-              (a) => a.status === "registered" || a.status === "available"
-            ).length === 0 && (
+            {studentAttendance.filter((a) => a.status === "available")
+              .length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No active sessions available.</p>
@@ -336,25 +344,6 @@ export function StudentDashboard() {
         </CardContent>
       </Card>
 
-      <Card className=" border-gradient">
-        <CardContent className="pt-6">
-          <div className="flex items-start space-x-3">
-            <ExternalLink className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-blue-900">
-                How to Join Sessions
-              </h3>
-              <p className="text-sm text-blue-700 mt-1">
-                Get a registration link from your instructor to register for
-                sessions. Once registered, you can check in when the session
-                becomes active. Sessions automatically close at their scheduled
-                end time.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Attendance History */}
       <Card>
         <CardHeader>
@@ -362,49 +351,133 @@ export function StudentDashboard() {
           <CardDescription>Your complete attendance record</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Session</TableHead>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Action Time</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {studentAttendance.map((attendance) => (
-                <TableRow key={attendance.sessionId}>
-                  <TableCell className="font-medium">
-                    {attendance.sessionTitle}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span>{attendance.sessionDate}</span>
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span>{attendance.sessionTime}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <span>{attendance.location}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(attendance.status)}</TableCell>
-                  <TableCell>
-                    {attendance.checkedInAt &&
-                      `Checked in: ${attendance.checkedInAt}`}
-                    {attendance.registeredAt &&
-                      !attendance.checkedInAt &&
-                      `Registered: ${attendance.registeredAt}`}
-                    {!attendance.checkedInAt && !attendance.registeredAt && "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {studentAttendance.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <UserCheck className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">No attendance records yet</p>
+              <p className="text-sm">
+                Your attendance history will appear here once you join sessions
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mobile-card space-y-4 md:hidden">
+                {studentAttendance.map((attendance) => (
+                  <Card
+                    key={attendance.sessionId}
+                    className="border-l-4 border-l-primary"
+                  >
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-semibold">
+                              {attendance.sessionTitle}
+                            </h3>
+                            <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
+                              <Calendar className="w-4 h-4" />
+                              <span>{attendance.sessionDate}</span>
+                              <Clock className="w-4 h-4" />
+                              <span>{attendance.sessionTime}</span>
+                            </div>
+                          </div>
+                          {getStatusBadge(attendance.status)}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <span>{attendance.location}</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {attendance.checkedInAt &&
+                              `Checked in: ${attendance.checkedInAt}`}
+                            {attendance.registeredAt &&
+                              !attendance.checkedInAt &&
+                              `Registered`}
+                            {!attendance.checkedInAt &&
+                              !attendance.registeredAt &&
+                              "-"}
+                            {/* : ${attendance.registeredAt} */}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="desktop-table hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Session</TableHead>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Action Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {studentAttendance.map((attendance) => (
+                      <TableRow key={attendance.sessionId}>
+                        <TableCell className="font-medium">
+                          {attendance.sessionTitle}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{attendance.sessionDate}</span>
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>{attendance.sessionTime}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span>{attendance.location}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(attendance.status)}
+                        </TableCell>
+                        <TableCell>
+                          {attendance.checkedInAt &&
+                            `Checked in: ${attendance.checkedInAt}`}
+                          {attendance.registeredAt &&
+                            !attendance.checkedInAt &&
+                            `Registered`}
+                          {!attendance.checkedInAt &&
+                            !attendance.registeredAt &&
+                            "-"}
+                          {/* : ${attendance.registeredAt} */}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-primary">
+        <CardContent className="">
+          <div className="flex md:items-center gap-3">
+            <ExternalLink className="w-20 md:w-5 md:h-5 text-primary" />
+            <div>
+              <h3 className="font-medium text-primary">
+                How to Join Sessions
+              </h3>
+              <p className="text-sm mt-1">
+                Get a registration link from your instructor to register for
+                sessions. Once registered, you can check in when the session
+                becomes active. Sessions automatically close at their scheduled
+                end time.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
