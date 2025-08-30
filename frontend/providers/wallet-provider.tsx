@@ -43,7 +43,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={config}>
         <RainbowKitProvider>{children}</RainbowKitProvider>
-        <Toaster />
+        <Toaster richColors={true}/>
       </WagmiProvider>
     </QueryClientProvider>
   );

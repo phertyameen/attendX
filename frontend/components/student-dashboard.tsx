@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -90,6 +89,7 @@ export function StudentDashboard() {
       setStudentAttendance(attendance);
     } catch (error) {
       console.error("Failed to load sessions:", error);
+      toast.error("Failed to load sessions. Please try again.");
     } finally {
     }
   };
@@ -112,6 +112,7 @@ export function StudentDashboard() {
       await refreshSessionData();
     } catch (error) {
       console.error("Failed to register for session:", error);
+      toast.error("Failed to register for session. Please try again.");
     } finally {
     }
   };
@@ -139,6 +140,7 @@ export function StudentDashboard() {
       setSelectedSession(null);
     } catch (error) {
       console.error("Failed to check in:", error);
+      toast.error("Failed to check in. Please try again.");
     } finally {
     }
   };

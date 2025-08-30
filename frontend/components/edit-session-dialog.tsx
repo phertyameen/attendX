@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Session } from "@/lib/session-manager";
+import { toast } from "sonner";
 
 interface EditSessionDialogProps {
   open: boolean;
@@ -29,6 +30,7 @@ export function EditSessionDialog({
   session,
   onEditSession,
 }: EditSessionDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [sessionData, setSessionData] = useState({
     title: "",
     startDate: "",
@@ -53,10 +55,20 @@ export function EditSessionDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onEditSession({
-      ...sessionData,
-      duration: Number.parseInt(sessionData.duration),
-    });
+    try {
+      setIsSubmitting(true);
+      onEditSession({
+        ...sessionData,
+        duration: Number.parseInt(sessionData.duration),
+      });
+      toast.success("Session updated successfully!");
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error updating session:", error);
+      toast.error("Failed to update session. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -151,7 +163,9 @@ export function EditSessionDialog({
             >
               Cancel
             </Button>
-            <Button type="submit">Update Session</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Updating" : "Update Session"}
+            </Button>
           </div>
         </form>
       </DialogContent>

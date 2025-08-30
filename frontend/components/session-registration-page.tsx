@@ -20,6 +20,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { SessionManager, type Session } from "@/lib/session-manager";
+import { useAccount } from "wagmi";
+import { useRouter } from "next/navigation";
 
 interface SessionRegistrationPageProps {
   sessionId: string;
@@ -33,6 +35,8 @@ export function SessionRegistrationPage({
   const [registering, setRegistering] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { address } = useAccount();
+  const router = useRouter();
 
   useEffect(() => {
     const loadSession = async () => {
@@ -56,11 +60,9 @@ export function SessionRegistrationPage({
 
         setSession(sessionData);
 
-        // Check if user is already registered (in real app, check against user wallet)
-        const mockUserId = "user123"; // In real app, get from wallet connection
         setRegistered(
           sessionData.registeredStudents?.some(
-            (student) => student.id === mockUserId
+            (student) => student.walletAddress === address
           ) || false
         );
       } catch (err) {
@@ -71,16 +73,14 @@ export function SessionRegistrationPage({
     };
 
     loadSession();
-  }, [sessionId]);
+  }, [sessionId, address]);
 
   const handleRegister = async () => {
     if (!session) return;
 
     setRegistering(true);
     try {
-      await SessionManager.registerForSession(
-        session.id,
-      );
+      await SessionManager.registerForSession(session.id);
       setRegistered(true);
     } catch (err) {
       setError("Failed to register for session");
@@ -128,10 +128,7 @@ export function SessionRegistrationPage({
                   ? "The session you're looking for doesn't exist or may have been removed."
                   : "This session has ended and is no longer accepting registrations."}
               </p>
-              <Button
-                onClick={() => (window.location.href = "/")}
-                variant="outline"
-              >
+              <Button onClick={() => router.replace("/")} variant="outline">
                 Go to Home
               </Button>
             </div>
@@ -211,10 +208,7 @@ export function SessionRegistrationPage({
                   You&apos;re registered for this session. You&apos;ll be able
                   to check in when the session becomes active.
                 </p>
-                <Button
-                  onClick={() => (window.location.href = "/")}
-                  variant="outline"
-                >
+                <Button onClick={() => router.replace("/")} variant="outline">
                   Go to Dashboard
                 </Button>
               </div>
@@ -227,11 +221,7 @@ export function SessionRegistrationPage({
                   Click the button below to register for this session.
                   You&apos;ll need to be registered before you can check in.
                 </p>
-                <Button
-                  onClick={handleRegister}
-                  disabled={registering}
-                  className="bg-primary hover:bg-primary/90"
-                >
+                <Button onClick={handleRegister} disabled={registering}>
                   {registering ? "Registering..." : "Register for Session"}
                 </Button>
               </div>
