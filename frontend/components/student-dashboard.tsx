@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -27,11 +28,13 @@ import {
   MapPin,
   UserPlus,
   ExternalLink,
+  Video,
 } from "lucide-react";
 import { CheckInDialog } from "./check-in-dialog";
 import { SessionManager, type Session } from "@/lib/session-manager";
 import { useAccount } from "wagmi";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 type StudentAttendance = {
   sessionId: string;
@@ -53,23 +56,32 @@ export function StudentDashboard() {
   >([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const router = useRouter();
 
   const refreshSessionData = async () => {
     if (!address) return;
 
     try {
       const allSessions = await SessionManager.getAllSessions(address);
-      setAvailableSessions(allSessions);
 
-      // Convert sessions to student attendance format
-      const attendance: StudentAttendance[] = allSessions.map((session) => {
-        let status: StudentAttendance["status"] = "available";
+      const studentSessions = allSessions.filter(
+        (session) => session.studentStatus !== "none"
+      );
+      setAvailableSessions(studentSessions);
+
+      const attendance: StudentAttendance[] = studentSessions.map((session) => {
+        let status: StudentAttendance["status"];
 
         if (session.studentStatus === "checked-in") {
           status = "attended";
         } else if (session.studentStatus === "registered") {
-          status = "registered";
-        } else if (session.status === "completed") {
+          if (session.status === "completed") {
+            status = "missed";
+          } else {
+            status = "registered";
+          }
+        } else {
           status = "missed";
         }
 
@@ -95,7 +107,6 @@ export function StudentDashboard() {
     } catch (error) {
       console.error("Failed to load sessions:", error);
       toast.error("Failed to load sessions. Please try again.");
-    } finally {
     }
   };
 
@@ -103,29 +114,18 @@ export function StudentDashboard() {
     refreshSessionData();
   }, [address]);
 
-  const handleRegisterForSession = async (sessionId: string) => {
-    if (!address) return;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 30000);
 
-    try {
-      await SessionManager.registerForSession(sessionId);
-
-      // Wait a moment for blockchain confirmation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Refresh all session data to get updated status
-      await refreshSessionData();
-    } catch (error) {
-      console.error("Failed to register for session:", error);
-      toast.error("Failed to register for session. Please try again.");
-    } finally {
-    }
-  };
+    return () => clearInterval(timer);
+  }, []);
 
   const handleCheckIn = async (sessionId: string) => {
     if (!address) return;
 
     try {
-      // Check if user is actually registered first
       const session = availableSessions.find((s) => s.id === sessionId);
       if (!session || session.studentStatus === "none") {
         alert("You must register for this session before checking in!");
@@ -133,11 +133,7 @@ export function StudentDashboard() {
       }
 
       await SessionManager.checkInToSession(sessionId);
-
-      // Wait a moment for blockchain confirmation
       await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Refresh all session data
       await refreshSessionData();
 
       setShowCheckInDialog(false);
@@ -145,7 +141,6 @@ export function StudentDashboard() {
     } catch (error) {
       console.error("Failed to check in:", error);
       toast.error("Failed to check in. Please try again.");
-    } finally {
     }
   };
 
@@ -174,6 +169,28 @@ export function StudentDashboard() {
     );
   };
 
+  // --- MODIFICATION START ---
+  // 1. This list now includes ALL active sessions you are part of,
+  //    whether you have checked-in ('attended') or not ('registered').
+  const activeSessions = studentAttendance.filter((attendance) => {
+    const session = availableSessions.find(
+      (s) => s.id === attendance.sessionId
+    );
+    // The key change is here: we no longer check if status is 'registered'.
+    // We only care if the session itself is 'active'.
+    return session?.status === "active";
+  });
+  // --- MODIFICATION END ---
+
+  const canCheckInToSession = (session: Session) => {
+    if (session.status !== "active") return false;
+    const sessionStart = new Date(`${session.startDate}T${session.startTime}`);
+    const fourMinutesAfterStart = new Date(
+      sessionStart.getTime() + 4 * 60 * 1000
+    );
+    return currentTime >= fourMinutesAfterStart;
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -187,95 +204,91 @@ export function StudentDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Sessions Attended
-            </CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{attendedCount}</div>
-            <p className="text-xs text-muted-foreground">
-              out of {totalSessions} total sessions
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl p-[2px] bg-gradient-to-r from-[rgb(28,60,138)] via-cyan-200 to-[#02B7D5] animate-gradient">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Sessions Attended
+              </CardTitle>
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{attendedCount}</div>
+              <p className="text-xs text-muted-foreground">
+                out of {totalSessions} total sessions
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Registered Sessions
-            </CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{registeredCount}</div>
-            <p className="text-xs text-muted-foreground">waiting to check in</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl p-[2px] bg-gradient-to-r from-[rgb(28,60,138)] via-cyan-200 to-[#02B7D5] animate-gradient">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Registered Sessions
+              </CardTitle>
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{registeredCount}</div>
+              <p className="text-xs text-muted-foreground">
+                waiting to check in
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Attendance Rate
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{attendanceRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {attendanceRate >= 80 ? "Excellent attendance!" : "Keep it up!"}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl p-[2px] bg-gradient-to-r from-[rgb(28,60,138)] via-cyan-200 to-[#02B7D5] animate-gradient">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Attendance Rate
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{attendanceRate}%</div>
+              <p className="text-xs text-muted-foreground">
+                {attendanceRate >= 80 ? "Excellent attendance!" : "Keep it up!"}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Available to Check In
-            </CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {studentAttendance.filter((a) => a.status === "available").length}
-            </div>
-            <p className="text-xs text-muted-foreground">active sessions</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl p-[2px] bg-gradient-to-r from-[rgb(28,60,138)] via-cyan-200 to-[#02B7D5] animate-gradient">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Active Sessions
+              </CardTitle>
+              <Award className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{activeSessions.length}</div>
+              <p className="text-xs text-muted-foreground">ready to join</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
+      {/* active sessions  */}
       <Card>
         <CardHeader>
           <CardTitle>Active Sessions</CardTitle>
           <CardDescription>
-            Sessions you&apos;re registered for that are currently active -
-            check in now!
+            Join the classroom for your active sessions and check in when
+            available.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {studentAttendance
-              .filter((attendance) => {
-                const session = availableSessions.find(
-                  (s) => s.id === attendance.sessionId
-                );
-                return (
-                  attendance.status === "registered" &&
-                  session?.status === "active"
-                );
-              })
-              .map((attendance) => {
+            {/* 2. Check the length of the new `activeSessions` list. */}
+            {activeSessions.length > 0 ? (
+              activeSessions.map((attendance) => {
                 const session = availableSessions.find(
                   (s) => s.id === attendance.sessionId
                 );
                 if (!session) return null;
-
-                const isRegistered =
-                  session.studentStatus === "registered" ||
-                  session.studentStatus === "checked-in";
-                const canCheckIn = isRegistered && session.status === "active";
 
                 return (
                   <div
@@ -287,11 +300,19 @@ export function StudentDashboard() {
                         <h3 className="font-medium">
                           {attendance.sessionTitle}
                         </h3>
-                        {isRegistered && (
-                          <Badge variant="outline" className="text-xs">
-                            Registered
-                          </Badge>
-                        )}
+                        {/* 3. Show a badge based on check-in status. */}
+                        <Badge
+                          variant={
+                            attendance.status === "attended"
+                              ? "default"
+                              : "outline"
+                          }
+                          className="text-xs"
+                        >
+                          {attendance.status === "attended"
+                            ? "Checked-In"
+                            : "Registered"}
+                        </Badge>
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <div className="flex items-center space-x-1">
@@ -308,35 +329,40 @@ export function StudentDashboard() {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => {
-                        if (!isRegistered) {
-                          handleRegisterForSession(session.id);
-                        } else if (canCheckIn) {
-                          setSelectedSession(session);
-                          setShowCheckInDialog(true);
-                        }
-                      }}
-                      disabled={!canCheckIn}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <UserCheck className="w-4 h-4 mr-2" />
-                      {!isRegistered
-                        ? "Register"
-                        : canCheckIn
-                        ? "Check In"
-                        : "Not Active"}
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={() => router.push(`/classroom/${session.id}`)}
+                        variant="outline"
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        Join Classroom
+                      </Button>
+
+                      {/* 4. The "Check In" button now only shows if you haven't checked in yet. */}
+                      {attendance.status === "registered" &&
+                        canCheckInToSession(session) && (
+                          <Button
+                            onClick={() => {
+                              setSelectedSession(session);
+                              setShowCheckInDialog(true);
+                            }}
+                            className="bg-primary hover:bg-primary/90"
+                          >
+                            <UserCheck className="w-4 h-4 mr-2" />
+                            Check In
+                          </Button>
+                        )}
+                    </div>
                   </div>
                 );
-              })}
-            {studentAttendance.filter((a) => a.status === "available")
-              .length === 0 && (
+              })
+            ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No active sessions available.</p>
+                <p>No active sessions available for check-in.</p>
                 <p className="text-sm">
-                  Ask your instructor for a registration link to join a session.
+                  When a session you&apos;re registered for becomes active, it
+                  will appear here.
                 </p>
               </div>
             )}
@@ -348,7 +374,9 @@ export function StudentDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Attendance History</CardTitle>
-          <CardDescription>Your complete attendance record</CardDescription>
+          <CardDescription>
+            Your complete attendance record for all your sessions
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {studentAttendance.length === 0 ? (
@@ -398,7 +426,6 @@ export function StudentDashboard() {
                             {!attendance.checkedInAt &&
                               !attendance.registeredAt &&
                               "-"}
-                            {/* : ${attendance.registeredAt} */}
                           </div>
                         </div>
                       </div>
@@ -450,7 +477,6 @@ export function StudentDashboard() {
                           {!attendance.checkedInAt &&
                             !attendance.registeredAt &&
                             "-"}
-                          {/* : ${attendance.registeredAt} */}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -467,9 +493,7 @@ export function StudentDashboard() {
           <div className="flex md:items-center gap-3">
             <ExternalLink className="w-20 md:w-5 md:h-5 text-primary" />
             <div>
-              <h3 className="font-medium text-primary">
-                How to Join Sessions
-              </h3>
+              <h3 className="font-medium text-primary">How to Join Sessions</h3>
               <p className="text-sm mt-1">
                 Get a registration link from your instructor to register for
                 sessions. Once registered, you can check in when the session
