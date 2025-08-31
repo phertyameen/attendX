@@ -26,7 +26,7 @@ export function Navbar({ userType }: NavbarProps) {
 
   return (
     <nav className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Brand */}
           <div className="flex items-center space-x-3">
@@ -35,7 +35,7 @@ export function Navbar({ userType }: NavbarProps) {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">AttendX</h1>
-              <p className="text-xs text-muted-foreground">Smart Attendance</p>
+              <p className="text-xs text-muted-foreground hidden sm:block">Smart Attendance</p>
             </div>
           </div>
 

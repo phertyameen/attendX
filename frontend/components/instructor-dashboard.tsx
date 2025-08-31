@@ -32,6 +32,8 @@ import {
   Users,
   Award,
   TrendingUp,
+  Timer,
+  Video,
 } from "lucide-react";
 import { CreateSessionDialog } from "./create-session-dialog";
 import { ViewAttendanceDialog } from "./view-attendance-dialog";
@@ -42,6 +44,7 @@ import { ethers } from "ethers";
 import { useAccount } from "wagmi";
 import { useWalletClient } from "wagmi";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 // import AttendanceABI from "@/lib/abis/AttendanceABI.json";
 
 export function InstructorDashboard() {
@@ -54,11 +57,24 @@ export function InstructorDashboard() {
   const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
+  const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const router = useRouter();
+
   useEffect(() => {
     const loadSessions = async () => {
+      // If no wallet is connected, clear the sessions and do nothing.
+      if (!address) {
+        setSessions([]);
+        return;
+      }
       try {
         const allSessions = await SessionManager.getAllSessions();
-        setSessions(allSessions);
+        // Filter sessions to only show those created by the current instructor.
+        const instructorSessions = allSessions.filter(
+          (session) => session.createdBy === address
+        );
+        setSessions(instructorSessions);
       } catch (error) {
         console.error("Failed to load sessions:", error);
         toast.error("Failed to load sessions");
@@ -66,7 +82,7 @@ export function InstructorDashboard() {
     };
 
     loadSessions();
-  }, []);
+  }, [address]);
 
   useEffect(() => {
     const updateSessionStatus = () => {
@@ -115,7 +131,6 @@ export function InstructorDashboard() {
     } catch (error) {
       console.error("Failed to copy link:", error);
       toast.error("Failed to copy link");
-      // Fallback for browsers that don't support clipboard API
       const textArea = document.createElement("textarea");
       textArea.value = sessionLink;
       document.body.appendChild(textArea);
@@ -127,13 +142,9 @@ export function InstructorDashboard() {
     }
   };
 
-  const { data: walletClient } = useWalletClient();
-  const { address, isConnected } = useAccount();
-
   const handleCreateSession = async (sessionData: any) => {
     try {
       if (!walletClient || !address) {
-        // alert("Please connect your wallet first.");
         toast.error("Please connect your wallet first");
         return;
       }
@@ -145,28 +156,15 @@ export function InstructorDashboard() {
         const signer = await provider.getSigner();
         const attendanceContract = getAttendanceContract(signer);
 
-        console.log("Creating session with data:", sessionData);
-        console.log("Contract address:", attendanceContract.target);
-        console.log("User address:", address);
-
-        // Estimate gas first
         const gasEstimate = await attendanceContract.createSession.estimateGas(
           sessionData.title
         );
-        console.log("Gas estimate:", gasEstimate.toString());
-
-        // Send transaction
         const tx = await attendanceContract.createSession(sessionData.title, {
-          gasLimit: (gasEstimate * BigInt(120)) / BigInt(100), // 20% buffer
+          gasLimit: (gasEstimate * BigInt(120)) / BigInt(100),
         });
 
-        console.log("Transaction sent:", tx.hash);
         toast.info("Transaction sent. Waiting for confirmation...");
-
         const receipt = await tx.wait();
-        console.log("Transaction receipt:", receipt);
-
-        // Parse the SessionCreated event from the logs
         let sessionId: string | null = null;
 
         for (const log of receipt.logs) {
@@ -174,11 +172,9 @@ export function InstructorDashboard() {
             const parsedLog = attendanceContract.interface.parseLog(log);
             if (parsedLog && parsedLog.name === "SessionCreated") {
               sessionId = parsedLog.args[0].toString();
-              console.log("Found SessionCreated event, sessionId:", sessionId);
               break;
             }
           } catch (error) {
-            // Skip logs that can't be parsed by our contract
             continue;
           }
         }
@@ -187,7 +183,6 @@ export function InstructorDashboard() {
           throw new Error("SessionCreated event not found in transaction logs");
         }
 
-        // Save to local session manager
         await SessionManager.createSession({
           sessionId,
           txHash: receipt.hash,
@@ -197,13 +192,16 @@ export function InstructorDashboard() {
           duration: sessionData.duration,
           location: sessionData.location,
           description: sessionData.description,
-          createdBy: address,
+          createdBy: address, // Ensure the creator's address is saved
         });
 
         const allSessions = await SessionManager.getAllSessions();
-        setSessions(allSessions);
-        setShowCreateForm(false);
+        const instructorSessions = allSessions.filter(
+          (session) => session.createdBy === address
+        );
+        setSessions(instructorSessions);
 
+        setShowCreateForm(false);
         toast.success(
           `Session ${sessionId} created successfully! Transaction: ${receipt.hash.substring(
             0,
@@ -212,11 +210,8 @@ export function InstructorDashboard() {
         );
       } catch (error: any) {
         console.error("Failed to create session:", error);
-
         if (error.code === "ACTION_REJECTED") {
           toast.error("Transaction was rejected by user");
-        } else if (error.code === "INSUFFICIENT_FUNDS") {
-          toast.error("Insufficient funds for transaction");
         } else if (error.reason) {
           toast.error(`Contract error: ${error.reason}`);
         } else {
@@ -225,8 +220,8 @@ export function InstructorDashboard() {
       } finally {
         setIsCreating(false);
       }
-    } catch {
-      console.log("first");
+    } catch (error) {
+      console.error("Error in handleCreateSession:", error);
     }
   };
 
@@ -273,29 +268,22 @@ export function InstructorDashboard() {
       </Badge>
     );
   };
+
   const totalSessions = sessions.length;
   const activeSessions = sessions.filter((s) => s.status === "active").length;
   const completedSessions = sessions.filter(
     (s) => s.status === "completed"
   ).length;
-  const totalRegistrations = sessions.reduce(
-    (sum, session) => sum + (session.registeredStudents?.length || 0),
-    0
-  );
   const totalAttendance = sessions.reduce(
     (sum, session) => sum + (session.attendanceCount || 0),
     0
   );
-  const averageAttendanceRate =
-    totalRegistrations > 0
-      ? Math.round((totalAttendance / totalRegistrations) * 100)
-      : 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row gap-3 md:gap-0 md:justify-between items-end md:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Instructor Dashboard
           </h1>
           <p className="text-muted-foreground">
@@ -330,187 +318,308 @@ export function InstructorDashboard() {
         </Card>
       )}
 
+      {/* analysis */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Sessions
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSessions}</div>
-            <p className="text-xs text-muted-foreground">
-              {activeSessions} active, {completedSessions} completed
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl p-[2px] bg-gradient-to-r from-[rgb(28,60,138)] via-cyan-200 to-[#02B7D5] animate-gradient">
+          <Card className="">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Sessions
+              </CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalSessions}</div>
+              <p className="text-xs text-muted-foreground">
+                {activeSessions} active, {completedSessions} completed
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Registrations
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalRegistrations}</div>
-            <p className="text-xs text-muted-foreground">across all sessions</p>
-          </CardContent>
-        </Card>
+        <div className=" rounded-2xl p-[2px] bg-gradient-to-r from-[rgb(28,60,138)] via-cyan-200 to-[#02B7D5] animate-gradient">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Attendance
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalAttendance}</div>
+              <p className="text-xs text-muted-foreground">
+                Total students checked-in
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Average Attendance
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{averageAttendanceRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {averageAttendanceRate >= 80
-                ? "Excellent engagement!"
-                : "Room for improvement"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Sessions
-            </CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeSessions}</div>
-            <p className="text-xs text-muted-foreground">currently running</p>
-          </CardContent>
-        </Card>
+        <div className=" rounded-2xl p-[2px] bg-gradient-to-r from-[rgb(28,60,138)] via-cyan-200 to-[#02B7D5] animate-gradient">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Active Sessions
+              </CardTitle>
+              <Award className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{activeSessions}</div>
+              <p className="text-xs text-muted-foreground">currently running</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
+      {/* tables */}
       <Card>
-        <CardHeader>
-          <CardTitle>Sessions</CardTitle>
+        <CardHeader className="px-3 md:px-6">
+          <CardTitle>Your Sessions</CardTitle>
           <CardDescription>
             Manage your attendance sessions. Share registration links with
             students so they can register before the session starts.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 md:px-6">
           {sessions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                No sessions created yet. Create your first session to get
-                started.
+            <div className="text-center py-12 text-muted-foreground">
+              <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">No sessions created yet</p>
+              <p className="text-sm">
+                Click &quot;Create Session&quot; to get started.
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Session</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Registered</TableHead>
-                  <TableHead>Attended</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="mobile-card space-y-4 md:hidden">
                 {sessions.map((session) => (
-                  <TableRow key={session.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{session.title}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {session.description}
+                  <Card
+                    key={session.id}
+                    className="border-l-4 border-l-primary py-4 sm:py-6"
+                  >
+                    <CardContent className="px-2 sm:px-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-lg">
+                              {session.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {session.description}
+                            </p>
+                          </div>
+                          {getStatusBadge(session.status)}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.startDate}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.startTime}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.location}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              {session.registeredStudents?.length || 0}{" "}
+                              registered
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Timer className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.duration || 0} min</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="text-sm text-muted-foreground">
+                            {session.attendanceCount || 0} attended
+                          </div>
+                          <div className="flex space-x-2">
+                            {session.status === "active" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  router.push(`/classroom/${session.id}`)
+                                }
+                                className="h-8 w-8 p-0 bg-primary"
+                                title="Join Classroom"
+                              >
+                                <Video className="w-4 h-4 text-white" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => copySessionLink(session.id)}
+                              className="h-8 w-8 p-0"
+                              title="Share registration link"
+                            >
+                              {copiedSessionId === session.id ? (
+                                <Copy className="w-4 h-4 text-white" />
+                              ) : (
+                                <Share2 className="w-4 h-4 text-white" />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon"
+                              onClick={() => {
+                                setSelectedSession(session);
+                                setShowAttendanceDialog(true);
+                              }}
+                              className="h-8 w-8 p-0"
+                              title="View attendance"
+                            >
+                              <Eye className="w-4 h-4 text-white" />
+                            </Button>
+                            {session.status === "upcoming" && (
+                              <Button
+                                size="icon"
+                                onClick={() => openEditForm(session)}
+                                className="h-8 w-8 p-0 bg-primary"
+                                title="Edit session "
+                              >
+                                <Edit className="w-4 h-4 text-white" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span>{session.startDate}</span>
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span>{session.startTime}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{session.duration} min</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>{session.location || "not set"}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(session.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <span>{session.registeredStudents?.length || 0}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{session.attendanceCount} students</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copySessionLink(session.id)}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          {copiedSessionId === session.id ? (
-                            <>
-                              <Copy className="w-4 h-4 mr-1" />
-                              Copied!
-                            </>
-                          ) : (
-                            <>
-                              <Share2 className="w-4 h-4 mr-1" />
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedSession(session);
-                            setShowAttendanceDialog(true);
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                        </Button>
-                        {session.status === "upcoming" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditForm(session)}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              <div className="desktop-table hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Session</TableHead>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Duration</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Registered</TableHead>
+                      <TableHead>Attended</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sessions.map((session) => (
+                      <TableRow key={session.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{session.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {session.description}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.startDate}</span>
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.startTime}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{session.duration} min</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span>{session.location}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(session.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              {session.registeredStudents?.length || 0}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {session.attendanceCount || 0} students
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-1">
+                            {session.status === "active" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  router.push(`/classroom/${session.id}`)
+                                }
+                                className="h-8 w-8 p-0 hover:bg-green-500/20"
+                                title="Join Classroom"
+                              >
+                                <Video className="w-4 h-4 text-green-600" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copySessionLink(session.id)}
+                              className="h-8 w-8 p-0 hover:bg-secondary/20"
+                              title="Share registration link"
+                            >
+                              {copiedSessionId === session.id ? (
+                                <Copy className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <Share2 className="w-4 h-4 text-secondary" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSession(session);
+                                setShowAttendanceDialog(true);
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-accent/20"
+                              title="View attendance"
+                            >
+                              <Eye className="w-4 h-4 text-accent" />
+                            </Button>
+                            {session.status === "upcoming" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditForm(session)}
+                                className="h-8 w-8 p-0 hover:bg-primary/20"
+                                title="Edit session"
+                              >
+                                <Edit className="w-4 h-4 text-primary" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
 
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <div className="flex items-start space-x-3">
-            <Share2 className="w-5 h-5 text-blue-600 mt-0.5" />
+      <Card className=" border-primary py-3 md:py-6">
+        <CardContent className="px-3 md:px-6">
+          <div className="flex md:items-center space-x-3">
+            <Share2 className="w-20 md:w-5 md:h-5 text-primary" />
             <div>
-              <h3 className="font-medium text-blue-900">
+              <h3 className="font-medium text-primary">
                 How Session Registration Works
               </h3>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-sm mt-1">
                 Click the &quot;Share&quot; button to copy a registration link
                 for any session. Students must register using this link before
                 they can check in when the session becomes active. Sessions

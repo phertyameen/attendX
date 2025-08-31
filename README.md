@@ -69,7 +69,7 @@ Web3 wallet (MetaMask recommended): defaulted to use lisk for signing
 
 ## Setup
 ### Clone repo
-git clone https://github.com/your-org/attendx.git
+git clone https://github.com/phertyameen/attendX
 cd attendx
 
 # Install dependencies
