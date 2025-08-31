@@ -10,17 +10,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, Users, Wallet, BookOpen } from "lucide-react";
+import {
+  GraduationCap,
+  Users,
+  Wallet,
+  BookOpen,
+  AlertTriangle,
+} from "lucide-react";
 import { InstructorDashboard } from "@/components/instructor-dashboard";
 import { StudentDashboard } from "@/components/student-dashboard";
 import { Navbar } from "@/components/navbar";
-import { Button } from "@/components/ui/button";
+import { useChainSwitcher } from "@/hooks/useChainSwitcher";
 
 export default function HomePage() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-
+  const { isCorrectChain, switchToLiskSepolia, isSwitching } =
+    useChainSwitcher();
   const [userType, setUserType] = useState<"instructor" | "student" | null>(
     null
   );
@@ -31,6 +40,32 @@ export default function HomePage() {
       setUserType(null);
     }
   }, [isConnected]);
+
+  // Show network warning if not on Lisk Sepolia
+  const NetworkWarning = () => {
+    if (isCorrectChain) return null;
+
+    return (
+      <Alert className="mb-4 border-yellow-200 bg-yellow-50">
+        <AlertTriangle className="h-4 w-4 text-yellow-600" />
+        <AlertDescription className="flex items-center justify-between">
+          <span className="text-yellow-800">
+            You&apos;re not connected to Lisk Sepolia network. Please switch to use
+            this app.
+          </span>
+          <Button
+            onClick={switchToLiskSepolia}
+            disabled={isSwitching}
+            size="sm"
+            variant="outline"
+            className="ml-2 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+          >
+            {isSwitching ? "Switching..." : "Switch to Lisk Sepolia"}
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  };
 
   if (!isConnected) {
     return (
@@ -91,6 +126,10 @@ export default function HomePage() {
               Secure blockchain-based attendance tracking for educational
               institutions
             </p>
+            <div className="text-xs text-muted-foreground text-center bg-blue-50 p-2 rounded">
+              <strong>Note:</strong> This app requires connection to Lisk
+              Sepolia network
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -114,13 +153,15 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-              <ConnectButton showBalance={false} chainStatus="none" />
+              <ConnectButton showBalance={false} chainStatus="full" />
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-center p-4 min-h-[calc(100vh-4rem)]">
           <div className="w-full max-w-4xl">
+            <NetworkWarning />
+
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 Choose Your Role
@@ -136,8 +177,10 @@ export default function HomePage() {
 
             <div className="grid md:grid-cols-2 gap-6">
               <Card
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => setUserType("instructor")}
+                className={`cursor-pointer hover:shadow-lg transition-shadow ${
+                  !isCorrectChain ? "opacity-50 pointer-events-none" : ""
+                }`}
+                onClick={() => isCorrectChain && setUserType("instructor")}
               >
                 <CardHeader className="text-center">
                   <div className="mx-auto mb-4 w-16 h-16 bg-primary rounded-full flex items-center justify-center">
@@ -161,8 +204,10 @@ export default function HomePage() {
               </Card>
 
               <Card
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => setUserType("student")}
+                className={`cursor-pointer hover:shadow-lg transition-shadow ${
+                  !isCorrectChain ? "opacity-50 pointer-events-none" : ""
+                }`}
+                onClick={() => isCorrectChain && setUserType("student")}
               >
                 <CardHeader className="text-center">
                   <div className="mx-auto mb-4 w-16 h-16 bg-secondary rounded-full flex items-center justify-center">
@@ -183,6 +228,31 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             </div>
+
+            {!isCorrectChain && (
+              <div className="text-center mt-6">
+                <p className="text-sm text-muted-foreground">
+                  Please switch to Lisk Sepolia network to continue
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If user has selected a role but is not on correct chain, show warning
+  if (!isCorrectChain) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar userType={userType} onDisconnect={() => disconnect()} />
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <NetworkWarning />
+          <div className="text-center mt-8">
+            <p className="text-muted-foreground">
+              Switch to Lisk Sepolia network to access the {userType} dashboard
+            </p>
           </div>
         </div>
       </div>

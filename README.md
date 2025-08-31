@@ -24,19 +24,19 @@ Organizers (instructors or event hosts) can create sessions on-chain, while part
 ## 🎯 Problem & Solution
 ### Problem
 
-Attendance fraud (proxy attendance, manipulation)
+- Attendance fraud (proxy attendance, manipulation)
 
-Time wasted on manual tracking
+- Time wasted on manual tracking
 
-Lack of transparency in traditional systems
+- Lack of transparency in traditional systems
 
 ### Solution
 
-Blockchain verification for trust
+- Blockchain verification for trust
 
-Automated check-in & reporting
+- Automated check-in & reporting
 
-Immutable attendance history for students & institutions
+- Immutable attendance history for students & institutions
 
 ## 🏆 Features
 
@@ -73,28 +73,31 @@ git clone https://github.com/phertyameen/attendX
 cd attendx
 
 # Install dependencies
+```bash
 npm install
 cd frontend
+```
 
 npm i (again if need be)
 
 # Start dev server
+```bash
 npm run dev
+```
 
 Visit http://localhost:3000 in your browser.
 
-🌐 Deployment
+## 🌐 Deployment
 
-Frontend (Vercel Hosted): attendx.vercel.app
+- Frontend (Vercel Hosted): [attendx.vercel.app](https://attend-x-gold.vercel.app/)
 
-Blockchain Network: Lisk Sepolia Testnet
+- Blockchain Network: Lisk Sepolia Testnet
 
-Smart Contract Address: 0xf84fe45280161504B9e6EE321fF3b9492Cd0a70b
+- Smart Contract Address: 0xf84fe45280161504B9e6EE321fF3b9492Cd0a70b
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the LICENSE
- file for details.
+This project is licensed under the MIT License — see the LICENSE file for details.
 
 ✨ Built with ❤️ at the Aleph Hackathon
 
