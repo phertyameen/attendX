@@ -1,11 +1,11 @@
 import { ClassroomPage } from "@/components/classroom-page";
 
 interface PageProps {
-  params: {
-    sessionId: string;
-  };
+  params: Promise<{ sessionId: string }>;
 }
 
-export default function Classroom({ params }: PageProps) {
-  return <ClassroomPage sessionId={params.sessionId} />;
+export default async function Classroom({ params }: PageProps) {
+  const { sessionId } = await params;
+
+  return <ClassroomPage sessionId={sessionId} />;
 }
