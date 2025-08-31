@@ -586,7 +586,7 @@ export function InstructorDashboard() {
                               className="h-8 w-8 p-0 hover:bg-accent/20"
                               title="View attendance"
                             >
-                              <Eye className="w-4 h-4 text-accent" />
+                              <Eye className="w-4 h-4 text-[#7276c6]" />
                             </Button>
                             {session.status === "upcoming" && (
                               <Button

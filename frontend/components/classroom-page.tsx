@@ -57,8 +57,7 @@ export function ClassroomPage({ sessionId }: ClassroomPageProps) {
         }
         setSession(sessionData);
 
-        // --- MODIFICATION START ---
-        // 1. Determine user role based on real session data.
+       
         const currentUserIsInstructor = address === sessionData.createdBy;
         setIsInstructor(currentUserIsInstructor);
 
@@ -86,7 +85,6 @@ export function ClassroomPage({ sessionId }: ClassroomPageProps) {
         );
 
         setParticipants([instructorParticipant, ...studentParticipants]);
-        // --- MODIFICATION END ---
       } catch (error) {
         console.error("Failed to load session:", error);
       } finally {
@@ -205,8 +203,6 @@ export function ClassroomPage({ sessionId }: ClassroomPageProps) {
   const sendMessage = () => {
     if (!newMessage.trim() || !address) return;
 
-    // --- MODIFICATION START ---
-    // 3. Use dynamic data for sender's name in chat.
     const myName = isInstructor
       ? `Instructor (${address.substring(0, 6)}...)`
       : `Student (${address.substring(0, 6)}...)`;
@@ -221,7 +217,6 @@ export function ClassroomPage({ sessionId }: ClassroomPageProps) {
       }),
       isInstructor,
     };
-    // --- MODIFICATION END ---
 
     setChatMessages((prev) => [...prev, message]);
     setNewMessage("");
@@ -258,13 +253,11 @@ export function ClassroomPage({ sessionId }: ClassroomPageProps) {
     );
   }
 
-  // Add this helper component inside ClassroomPage
   const VideoTile = ({ stream }: { stream: MediaStream | null }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
       if (videoRef.current && stream) {
-        // This assigns the stream to the video element, bypassing the TypeScript error
         videoRef.current.srcObject = stream;
       }
     }, [stream]);
@@ -336,7 +329,7 @@ export function ClassroomPage({ sessionId }: ClassroomPageProps) {
                     ) : (
                       <div className="text-center">
                         <Video className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                        <p>
+                        <p className="text-white">
                           {isScreenSharing
                             ? "Screen being shared"
                             : "Camera off"}
@@ -345,14 +338,11 @@ export function ClassroomPage({ sessionId }: ClassroomPageProps) {
                     )}
                   </div>
                   <div className="absolute bottom-4 left-4">
-                    {/* --- MODIFICATION START --- */}
-                    {/* 5. Display dynamic names in the UI. */}
-                    <Badge variant="outline" className="bg-black/50">
+                    <Badge variant={"secondary"}>
                       {participants.find((p) => p.isInstructor)?.name ||
                         "Instructor"}
                       {address === session.createdBy && " (You)"}
                     </Badge>
-                    {/* --- MODIFICATION END --- */}
                   </div>
                 </CardContent>
               </Card>
@@ -381,7 +371,7 @@ export function ClassroomPage({ sessionId }: ClassroomPageProps) {
                       )}
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-sm truncate">
+                      <span className="text-sm truncate text-white">
                         {participant.name}{" "}
                         {participant.id === address && "(You)"}
                       </span>
