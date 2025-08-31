@@ -32,7 +32,7 @@ const liskSepolia = {
 const config = getDefaultConfig({
   appName: "meProject",
   projectId: "94160308b32ab0edf2db07fd3d2552c6", 
-  chains: [liskSepolia, sepolia, mainnet], 
+  chains: [liskSepolia], 
   ssr: true,
 });
 
@@ -42,7 +42,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={config}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        <RainbowKitProvider initialChain={liskSepolia} showRecentTransactions={true}>{children}</RainbowKitProvider>
         <Toaster richColors={true}/>
       </WagmiProvider>
     </QueryClientProvider>
