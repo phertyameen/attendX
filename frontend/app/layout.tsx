@@ -11,10 +11,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Web3 Attendance Platform",
+  title: "AttendX - Blockchain Attendance",
   description:
     "Blockchain-based attendance tracking for educational institutions",
-  generator: "v0.app",
 };
 
 export default function RootLayout({
