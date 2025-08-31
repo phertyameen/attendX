@@ -50,7 +50,7 @@ export default function HomePage() {
         <AlertTriangle className="h-4 w-4 text-yellow-600" />
         <AlertDescription className="flex items-center justify-between">
           <span className="text-yellow-800">
-            You're not connected to Lisk Sepolia network. Please switch to use
+            You&apos;re not connected to Lisk Sepolia network. Please switch to use
             this app.
           </span>
           <Button
